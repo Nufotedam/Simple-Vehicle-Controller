@@ -2,30 +2,29 @@ using UnityEngine;
 
 public class VehicleMovement : MonoBehaviour
 {
-    [SerializeField] private float motorForce = 1000.0f;
-    [SerializeField] private float breakForce = 3000.0f;
-    [SerializeField] private float maxSteeringAngle = 30.0f;
-    [SerializeField] private Vector3 carCenterMass;
+    [SerializeField] private float motorForce = 1000.0f;        //  Max force applies to the motor torque
+    [SerializeField] private float brakeForce = 3000.0f;        //  Brake force of the vehicle
+    [SerializeField] private float maxSteeringAngle = 30.0f;    //  Angle of the steering
+    [SerializeField] private Vector3 carCenterMass;             //  Center of the mass of the car, to avoid the car flip
 
-    [SerializeField] private WheelCollider frontLeft_WheelCollider;
-    [SerializeField] private WheelCollider frontRight_WheelCollider;
-    [SerializeField] private WheelCollider backLeft_WheelCollider;
-    [SerializeField] private WheelCollider backRight_WheelCollider;
+    //  Wheel colliders
+    [SerializeField] private WheelCollider[] frontWheelsColliders;
+    [SerializeField] private WheelCollider[] backWheelsColliders;
 
-    [SerializeField] private Transform frontLeft_WheelTransform;
-    [SerializeField] private Transform frontRight_WheelTransform;
-    [SerializeField] private Transform backLeft_WheelTransform;
-    [SerializeField] private Transform backRight_WheelTransform;
+    //  Wheels meshes position
+    [SerializeField] private Transform[] frontWheelsTransform;
+    [SerializeField] private Transform[] backWheelsTransform;
 
-    private Vector3 movementDirection;
-    private float _CurrentBreakForce;
-    private float _SteeringAngle;
+    private Vector3 movementDirection;          //  Input movement
+    private float _CurrentBreakForce;           //  Current brake force apply
+    private float _SteeringAngle;               //  Current angle
     private bool isBreaking;
 
     private Rigidbody _CarRigibody;
 
     public void UpdateMovementData(Vector3 newMovementDirection)
     {
+        //  Method to update the movmeent Input direction 
         movementDirection = newMovementDirection;
     }
 
@@ -41,6 +40,7 @@ public class VehicleMovement : MonoBehaviour
 
     public void ResetPosition()
     {
+        //  Reset the rotation of the car if it has been turned over
         Vector3 newRotation = new Vector3(0, transform.rotation.eulerAngles.y, 0);
         transform.rotation = Quaternion.Euler(newRotation);
         StopVehicle();
@@ -48,6 +48,7 @@ public class VehicleMovement : MonoBehaviour
 
     private void Start()
     {
+        //  Get the Rigibody component and set its center of mass
         _CarRigibody = GetComponent<Rigidbody>();
         _CarRigibody.centerOfMass = carCenterMass;
     }
@@ -61,36 +62,58 @@ public class VehicleMovement : MonoBehaviour
 
     private void HandleMotor() 
     {
-        frontLeft_WheelCollider.motorTorque = movementDirection.z * motorForce;
-        frontRight_WheelCollider.motorTorque = movementDirection.z * motorForce;
-        backLeft_WheelCollider.motorTorque = movementDirection.z * motorForce;
-        backRight_WheelCollider.motorTorque = movementDirection.z * motorForce;
+        //  Add force to be able to move the vehicle
+        for (int i = 0; i < frontWheelsColliders.Length; i++)
+        {
+            frontWheelsColliders[i].motorTorque = movementDirection.z * motorForce;
+        }
+        
+        for (int i = 0; i < frontWheelsColliders.Length; i++)
+        {
+            backWheelsColliders[i].motorTorque = movementDirection.z * motorForce;
+        }
 
-        _CurrentBreakForce = isBreaking ? breakForce : 0f;
+        //  If the vehicle is braking, then apply the brake force
+        _CurrentBreakForce = isBreaking ? brakeForce : 0f;
         Breaking();
     }
 
     private void Breaking()
     {
-        frontLeft_WheelCollider.brakeTorque = _CurrentBreakForce;
-        frontRight_WheelCollider.brakeTorque = _CurrentBreakForce;
-        backLeft_WheelCollider.brakeTorque = _CurrentBreakForce;
-        backRight_WheelCollider.brakeTorque = _CurrentBreakForce;
+        //  Apply the brake force to all wheels
+        for (int i = 0; i < frontWheelsColliders.Length; i++)
+        {
+            frontWheelsColliders[i].brakeTorque = _CurrentBreakForce;
+        }
+
+        for (int i = 0; i < backWheelsColliders.Length; i++)
+        {
+            frontWheelsColliders[i].brakeTorque = _CurrentBreakForce;
+        }
     }
 
     private void HandleSteering()
     {
+        //  Apply the steering to the front wheels
         _SteeringAngle = maxSteeringAngle * movementDirection.x;
-        frontLeft_WheelCollider.steerAngle = _SteeringAngle;
-        frontRight_WheelCollider.steerAngle = _SteeringAngle;
+        for (int i = 0; i < frontWheelsColliders.Length; i++)
+        {
+            frontWheelsColliders[i].steerAngle = _SteeringAngle;
+        }
     }
 
     private void UpdateWheels()
     {
-        UpdateSingleWHeel(frontLeft_WheelCollider, frontLeft_WheelTransform);
-        UpdateSingleWHeel(frontRight_WheelCollider, frontRight_WheelTransform);
-        UpdateSingleWHeel(backLeft_WheelCollider, backLeft_WheelTransform);
-        UpdateSingleWHeel(backRight_WheelCollider, backRight_WheelTransform);
+        //  Update every wheel mesh position and rotation
+        for (int i = 0; i < frontWheelsColliders.Length; i++)
+        {
+            UpdateSingleWHeel(frontWheelsColliders[i], frontWheelsTransform[i]);
+        }
+
+        for (int i = 0; i < backWheelsColliders.Length; i++)
+        {
+            UpdateSingleWHeel(backWheelsColliders[i], backWheelsTransform[i]);
+        }
     }
 
     private void UpdateSingleWHeel(WheelCollider wheelCollider, Transform wheelTransform)
@@ -98,6 +121,7 @@ public class VehicleMovement : MonoBehaviour
         Vector3 position;
         Quaternion rotation;
 
+        //  Get the wheel collider position and rotation and set the wheel mesh rotation and position
         wheelCollider.GetWorldPose(out position, out rotation);
         wheelTransform.rotation = rotation;
         wheelTransform.position = position;
@@ -106,9 +130,14 @@ public class VehicleMovement : MonoBehaviour
     private void StopVehicle()
     {
         _CarRigibody.velocity = Vector3.zero;
-        frontLeft_WheelCollider.motorTorque = 0;
-        frontRight_WheelCollider.motorTorque = 0;
-        backLeft_WheelCollider.motorTorque = 0;
-        backRight_WheelCollider.motorTorque = 0;
+        for (int i = 0; i < frontWheelsColliders.Length; i++)
+        {
+            frontWheelsColliders[i].motorTorque = 0;
+        }
+
+        for (int i = 0; i < frontWheelsColliders.Length; i++)
+        {
+            backWheelsColliders[i].motorTorque = 0;
+        }
     }
 }
