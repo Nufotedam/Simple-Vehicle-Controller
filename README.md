@@ -1,4 +1,4 @@
-Simple Car Controller
+Simple Vehicle Controller
 ----------------------------------
 Proyecto de Unity acerca de un simple controlador de coche utilizando las diferentes herramientas que brinda Unity.
 
